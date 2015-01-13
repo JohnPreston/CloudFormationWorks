@@ -19,7 +19,6 @@
     },
 
     "Resources" : {
-
         "ReverseProxySG": {
             "Type": "AWS::EC2::SecurityGroup",
                 "Properties": {
@@ -76,6 +75,8 @@
 		    	       "Fn::Base64" : { "Fn::Join" : ["", [
 		                 "#!/bin/bash \n",
 				 "yum install nginx -y \n",
+				 "rm -rfv /etc/nginx/conf.d/default.conf",
+				 "wget ",
 				 "service nginx start \n"
         			 ]
 				]
