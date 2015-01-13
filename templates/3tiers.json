@@ -1,0 +1,143 @@
+{
+
+    "AWSTemplateFormatVersion" : "2010-09-09",
+
+    "Description" : "Cloudformation Example => Deploy a 3tiers app stack",
+
+    "Parameters": {
+        "CentosImageId": {
+            "Description":"Centos Image id",
+            "Type":"String",
+            "NoEcho":"False"
+        },
+
+        "UserKeyPair": {
+            "Description":"User Key Pair",
+            "Type":"String",
+            "NoEcho":"True"
+        }
+    },
+
+    "Resources" : {
+
+        "ReverseProxySG": {
+            "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupDescription" : "ReverseProxy - 1st Tier",
+                    "SecurityGroupIngress" : [
+                        {
+                            "IpProtocol" : "tcp",
+                            "FromPort" : "80",
+                            "ToPort" : "80",
+                            "CidrIp" : "0.0.0.0/0"
+                        }
+                    ]
+                }
+        },
+        "ApplicationsSG": {
+            "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupDescription" : "Applications SG - 2nd tier"
+                }
+        },
+        "DatabasesSG": {
+            "Type": "AWS::EC2::SecurityGroup",
+                "Properties": {
+                    "GroupDescription" : "Databases SG - 3rd tier"
+                }
+        },
+	"ApplicationsSGIngress" : {
+         "Type" : "AWS::EC2::SecurityGroupIngress",
+         "Properties" : {
+             "GroupName" : { "Ref" : "ApplicationsSG" },
+             "IpProtocol" : "tcp",
+             "ToPort" : "80",
+             "FromPort" : "80",
+             "SourceSecurityGroupName" : { "Ref" : "ReverseProxySG" }
+         }
+     },
+     "DatabasesSGIngress" : {
+         "Type" : "AWS::EC2::SecurityGroupIngress",
+         "Properties" : {
+             "GroupName" : { "Ref" : "DatabasesSG" },
+             "IpProtocol" : "tcp",
+             "ToPort" : "3306",
+             "FromPort" : "3306",
+             "SourceSecurityGroupName" : { "Ref" : "ApplicationsSG" }
+         }
+     },
+     "ReverseProxyInstance": {
+            "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId" : { "Ref":"CentosImageId" },
+                    "InstanceType" : "m1.large",
+                    "UserData" :
+		    {
+		    	       "Fn::Base64" : { "Fn::Join" : ["", [
+		                 "#!/bin/bash \n",
+				 "yum install nginx -y \n",
+				 "service nginx start \n"
+        			 ]
+				]
+			}
+		},
+          "SecurityGroups" : [
+                        { "Ref" : "ReverseProxySG" }
+                    ],
+            "KeyName" : { "Ref" : "UserKeyPair" }
+            }
+        },
+     "ApplicationInstance": {
+            "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId" : { "Ref":"CentosImageId" },
+                    "InstanceType" : "m1.large",
+                    "UserData" :
+		    {
+		    	       "Fn::Base64" : { "Fn::Join" : ["", [
+		                 "#!/bin/bash \n",
+				 "yum install nginx -y \n",
+				 "rm -rfv /etc/nginx/conf.d/default.conf",
+				 ""
+				 "service nginx start \n"
+        			 ]
+				]
+			}
+		},
+
+
+                "SecurityGroups" : [
+                { "Ref" : "ApplicationsSG" }
+                ],
+            "KeyName" : { "Ref" : "UserKeyPair" }
+            }
+        },
+     "DatabaseInstance": {
+            "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId" : { "Ref":"CentosImageId" },
+                    "InstanceType" : "m1.large",
+                    "UserData" : {
+		    	       "Fn::Base64" : "#include https://get.docker.io" },
+                    "SecurityGroups" : [
+                        { "Ref" : "DatabasesSG" }
+                    ],
+            "KeyName" : { "Ref" : "UserKeyPair" }
+            }
+        }
+	},
+    "Outputs" : {
+        "InstanceId" : {
+            "Description" : "InstanceId of the newly created EC2 instance",
+            "Value" : { "Ref" : "ReverseProxyInstance" }
+        },
+        "AZ" : {
+            "Description" : "Availability Zone of the newly created EC2 instance",
+            "Value" : { "Fn::GetAtt" : [ "ReverseProxyInstance", "AvailabilityZone" ] }
+        },
+        "PublicIP" : {
+            "Description" : "Public IP address of the newly created EC2 instance",
+            "Value" : { "Fn::GetAtt" : [ "ReverseProxyInstance", "PublicIp" ] }
+        }
+    }
+}
