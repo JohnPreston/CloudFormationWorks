@@ -74,9 +74,11 @@
 		    {
 		    	       "Fn::Base64" : { "Fn::Join" : ["", [
 		                 "#!/bin/bash \n",
-				 "yum install nginx -y \n",
+				 "yum install nginx ansible -y \n",
 				 "rm -rfv /etc/nginx/conf.d/default.conf",
-				 "wget ",
+				 "cd /etc/nginx/conf.d/ \n",
+				 "wget https://raw.githubusercontent.com/JohnPreston/CloudFormationWorks/master/templates/proxy.conf \n",
+				 "sed -i s/DEST/"
 				 "service nginx start \n"
         			 ]
 				]
@@ -97,9 +99,9 @@
 		    {
 		    	       "Fn::Base64" : { "Fn::Join" : ["", [
 		                 "#!/bin/bash \n",
-				 "yum install nginx -y \n",
-				 "rm -rfv /etc/nginx/conf.d/default.conf",
-				 ""
+				 "yum install nginx ansible -y \n",
+				 "rm -rfv /etc/nginx/conf.d/default.conf\n",
+				 "/etc/nginx/conf.d/proxy.conf \n",
 				 "service nginx start \n"
         			 ]
 				]
