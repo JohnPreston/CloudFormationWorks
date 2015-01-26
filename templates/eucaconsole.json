@@ -1,0 +1,88 @@
+{
+
+    "AWSTemplateFormatVersion" : "2010-09-09",
+    "Description" : "Deploy Eucalyptus GUI via CF",
+
+    "Parameters": {
+        "CentosImageId": {
+            "Description":"Centos Image id",
+            "Type":"String",
+            "NoEcho":"False"
+        },
+
+        "UserKeyPair": {
+            "Description":"User Key Pair",
+            "Type":"String",
+            "NoEcho":"True"
+        },
+        "ELBAZ": {
+            "Description":"AZ in which is the ELB is deployed",
+            "Type":"String",
+            "NoEcho":"True"
+        }
+    },
+
+    "Resources" : {
+
+     "PublicELBSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+       "Properties": {
+        "GroupDescription" : "PublicELB SG",
+         "SecurityGroupIngress" : [
+          {
+       	   "IpProtocol" : "tcp",
+           "FromPort" : "80",
+           "ToPort" : "80",
+           "CidrIp" : "0.0.0.0/0"
+          }
+         ]
+        }
+      },
+
+      "EucaConsoleSG": {
+       "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+         "GroupDescription" : "Eucaconsole ELB"
+          }
+        },
+	"EucaConsoleSGIngress" : {
+         "Type" : "AWS::EC2::SecurityGroupIngress",
+         "Properties" : {
+             "GroupName" : { "Ref" : "EucaConsoleSG" },
+             "IpProtocol" : "tcp",
+             "ToPort" : "8888",
+             "FromPort" : "8888",
+             "SourceSecurityGroupName" : { "Ref" : "PublicELBSG" }
+         }
+     },
+     "EucaConsoleInstance": {
+            "Type": "AWS::EC2::Instance",
+                "Properties": {
+                    "ImageId" : { "Ref":"CentosImageId" },
+                    "InstanceType" : "m1.large",
+                    "UserData" :
+		    {
+		    "Fn::Base64" : { "Fn::Join" : ["",
+		     [
+		      "#!/bin/bash \n",
+		      "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/eucalyptus-release-4.0.el6.noarch.rpm -y",
+		      "yum install http://downloads.eucalyptus.com/software/euca2ools/3.1/centos/6/x86_64/euca2ools-release-3.1.el6.noarch.rpm -y",
+		      "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/epel-release-6.noarch.rpm -y",
+		      "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/elrepo-release-6.noarch.rpm -y",
+		      "yum install eucaconsole ansible git -y \n",
+		      "service eucaconsole start \n"
+        	     ]
+		    ]
+		  }
+		},
+          "SecurityGroups" : [ { "Ref" : "EucaConsoleSG" } ],
+	  "KeyName" : { "Ref" : "UserKeyPair" }
+            }
+        }    },
+    "Outputs" : {
+        "PublicIP" : {
+            "Description" : "Public IP address of the newly created EC2 instance",
+            "Value" : { "Fn::GetAtt" : [ "ReverseProxyInstance", "PublicIp" ] }
+        }
+    }
+}
