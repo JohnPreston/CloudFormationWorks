@@ -135,9 +135,9 @@
         ],
         "HealthCheck": {
           "HealthyThreshold": "4",
-          "Interval": "10",
+          "Interval": "5",
           "Target": "HTTP:8888/",
-          "Timeout": "5",
+          "Timeout": "2",
           "UnhealthyThreshold": "2"
         },
         "Listeners": [
@@ -152,7 +152,7 @@
     }
   },
   "Outputs": {
-    "PublicIP": {
+    "EucaConsole URL": {
       "Description": "Public IP address of the newly created EC2 instance",
       "Value": {
         "Fn::Join": [
