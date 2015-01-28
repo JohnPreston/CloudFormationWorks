@@ -101,7 +101,7 @@
                 "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/epel-release-6.noarch.rpm -y \n",
                 "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/elrepo-release-6.noarch.rpm -y \n",
                 "yum install eucaconsole ansible git -y \n",
-                "curl objectstorage.emea.eucalyptus.com:8773/console/console.ini -o /etc/eucalyptus/console.ini \n",
+                "curl objectstorage.emea.eucalyptus.com:8773/console/console.ini -o /etc/eucaconsole/console.ini \n",
                 "service eucaconsole start \n"
               ]
             ]
