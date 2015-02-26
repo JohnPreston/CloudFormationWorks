@@ -34,7 +34,7 @@
         "IpProtocol": "tcp",
         "ToPort": "8888",
         "FromPort": "8888",
-        "CidrIp": "109.104.120.0/26"
+        "CidrIp": "0.0.0.0/0"
       }
     },
     "EucaConsolePrivateSGIngress": {
@@ -46,7 +46,8 @@
         "IpProtocol": "tcp",
         "ToPort": "8888",
         "FromPort": "8888",
-        "CidrIp": "10.30.0.0/16"
+        "SourceSecurityGroupOwnerId" : {"Fn::GetAtt" : ["PublicELB", "SourceSecurityGroup.OwnerAlias"]},
+        "SourceSecurityGroupName" : {"Fn::GetAtt" : ["PublicELB", "SourceSecurityGroup.GroupName"]}
       }
     },
     "EucaConsoleInstance1": {
@@ -62,12 +63,12 @@
               "",
               [
                 "#!/bin/bash \n",
-                "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/eucalyptus-release-4.0.el6.noarch.rpm -y \n",
-                "yum install http://downloads.eucalyptus.com/software/euca2ools/3.1/centos/6/x86_64/euca2ools-release-3.1.el6.noarch.rpm -y \n",
+                "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.1/centos/6/x86_64/eucalyptus-release-4.1.el6.noarch.rpm -y \n",
+                "yum install http://downloads.eucalyptus.com/software/euca2ools/3.2/centos/6/x86_64/euca2ools-release-3.2.el6.noarch.rpm -y \n",
                 "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/epel-release-6.noarch.rpm -y \n",
                 "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/elrepo-release-6.noarch.rpm -y \n",
                 "yum install eucaconsole ansible git -y \n",
-                "curl objectstorage.emea.eucalyptus.com:8773/console/console.ini -o /etc/eucaconsole/console.ini \n",
+                "curl objectstorage.emea.eucalyptus.com:8773/demo-cf-console/console.ini -o /etc/eucaconsole/console.ini \n",
                 "service eucaconsole start \n"
               ]
             ]
@@ -96,12 +97,12 @@
               "",
               [
                 "#!/bin/bash \n",
-                "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/eucalyptus-release-4.0.el6.noarch.rpm -y \n",
-                "yum install http://downloads.eucalyptus.com/software/euca2ools/3.1/centos/6/x86_64/euca2ools-release-3.1.el6.noarch.rpm -y \n",
+                "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.1/centos/6/x86_64/eucalyptus-release-4.1.el6.noarch.rpm -y \n",
+                "yum install http://downloads.eucalyptus.com/software/euca2ools/3.2/centos/6/x86_64/euca2ools-release-3.2.el6.noarch.rpm -y \n",
                 "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/epel-release-6.noarch.rpm -y \n",
                 "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/elrepo-release-6.noarch.rpm -y \n",
                 "yum install eucaconsole ansible git -y \n",
-                "curl objectstorage.emea.eucalyptus.com:8773/console/console.ini -o /etc/eucaconsole/console.ini \n",
+                "curl objectstorage.emea.eucalyptus.com:8773/demo-cf-console/console.ini -o /etc/eucaconsole/console.ini \n",
                 "service eucaconsole start \n"
               ]
             ]
@@ -152,7 +153,7 @@
     }
   },
   "Outputs": {
-    "EucaConsole URL": {
+    "EucaConsoleURL": {
       "Description": "Public IP address of the newly created EC2 instance",
       "Value": {
         "Fn::Join": [
