@@ -1,0 +1,111 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Deploy Eucalyptus GUI via CF",
+  "Parameters": {
+    "CentosImageId": {
+      "Description": "Centos Image id",
+      "Type": "String",
+      "NoEcho": "False"
+    },
+    "UserKeyPair": {
+      "Description": "User Key Pair",
+      "Type": "String",
+      "NoEcho": "True"
+    },
+    "InstanceType": {
+      "Description": "Instance Type",
+      "Type": "String",
+      "NoEcho": "False"
+    }
+  },
+  "Resources": {
+    "ZabbixSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Zabbix Master"
+      }
+    },
+    "SGBaseIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupName": { "Ref": "ZabbixSG" },
+        "IpProtocol": "tcp",
+        "FromPort": "80",
+        "ToPort": "80",
+        "CidrIp": "0.0.0.0/0" }
+      },
+      "ZabbixInstance": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "CentosImageId"
+        },
+      "InstanceType": { "Ref": "InstanceType" },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash \n",
+                "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/epel-release-6.noarch.rpm -y \n",
+                "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/elrepo-release-6.noarch.rpm -y \n",
+                "yum install ansible git -y --enablerepo=epel \n",
+                "git clone https://github.com/JohnPreston/zabbix-ansible.git /var/tmp/zabbix-ansible \n",
+                "ansible localhost -m lineinfile -a 'regexp=127.0.0.1 line=\"localhost ansible_connection=local\" dest=/var/tmp/zabbix-ansible/zabbix/hosts' \n",
+                "ansible localhost -m lineinfile -a 'regexp=127.0.0.1 line=\"localhost ansible_connection=local\" dest=/var/tmp/zabbix-ansible/zabbix/hosts' \n",
+                "ansible localhost -m lineinfile -a 'regexp=127.0.0.1 line=\"localhost ansible_connection=local\" dest=/var/tmp/zabbix-ansible/zabbix/hosts' \n",
+                "ansible-playbook -i /var/tmp/zabbix-ansible/zabbix/hosts /var/tmp/zabbix-ansible/zabbix/server.yml \n",
+                "ansible-playbook -i /var/tmp/zabbix-ansible/zabbix/hosts /var/tmp/zabbix-ansible/zabbix/server.yml \n",
+                "crontab -l > /tmp/rootcron \n",
+                "mkdir /var/tmp/db_backups/ \n",
+                "curl https://gist.githubusercontent.com/JohnPreston/31e99ca400ff7ee68452/raw/e1a712fb4e59e1097da8c3304be057cb5d470ddf/aws_s3_cron.yml -o /var/tmp/zabbix_backup.yml \n",
+                "ansible-playbook /var/tmp/zabbix_backup.yml -e backup_folder=/var/tmp/db_backups/ -e bucket_name=zabbix-logs \n",
+                "crontab -l > /tmp/rootcron \n",
+                "echo '*/1 * * * * /usr/bin/mysqldump -uroot -hlocalhost zabbix_db > /var/tmp/db_backups/zabbix_db_`date +\\%Y\\%m\\%d-\\%H\\%M`.sql' >> /tmp/rootcron \n",
+                "echo '*/1 * * * *  /usr/bin/ansible-playbook /var/tmp/zabbix_backup.yml -e backup_folder=/var/tmp/db_backups/ -e bucket_name=zabbix-logs' >> /tmp/rootcron \n",
+                "crontab /tmp/rootcron \n"
+              ]
+            ]
+          }
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "ZabbixSG"
+          }
+        ],
+        "KeyName": {
+          "Ref": "UserKeyPair"
+          },
+          "IamInstanceProfile": {
+            "Ref": "ZabbixInstanceProfile"
+            }
+      }
+    },
+    "STSS3Role": {
+      "Type":"AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument":{
+          "Version":"2012-10-17",
+          "Statement": [{"Effect":"Allow","Principal":{"Service":["ec2.amazonaws.com"]},"Action":["sts:AssumeRole"]}]},
+          "Path":"/"}
+      },
+    "RolePolicies":{
+      "Type":"AWS::IAM::Policy",
+      "Properties":{"PolicyName":"root","PolicyDocument":{
+        "Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":"s3:*","Resource":"*"}]},
+        "Roles":[{"Ref":"STSS3Role"}]}
+      },
+    "ZabbixInstanceProfile": {
+      "Type":"AWS::IAM::InstanceProfile",
+      "Properties":{
+        "Path":"/",
+        "Roles":[{"Ref":"STSS3Role"}]}
+      }
+    },
+    "Outputs": {
+    "ZabbixInstance": {
+      "Description": "ID of the newly created EC2 instance",
+      "Value": { "Ref": "ZabbixInstance"  }
+      }
+    }
+}
