@@ -1,6 +1,6 @@
 {
   "AWSTemplateFormatVersion": "2010-09-09",
-  "Description": "Deploy Eucalyptus GUI via CF",
+  "Description": "Deploy Zabbix with Ansible and backup the DB every 1 minute",
   "Parameters": {
     "CentosImageId": {
       "Description": "Centos Image id",
