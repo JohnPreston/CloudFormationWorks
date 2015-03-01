@@ -1,0 +1,174 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Deploy 2 instances behind ELB",
+  "Parameters": {
+    "CentosImageId": {
+      "Description": "Centos Image id",
+      "Type": "String",
+      "NoEcho": "False"
+    },
+    "UserKeyPair": {
+      "Description": "User Key Pair",
+      "Type": "String",
+      "NoEcho": "True"
+    },
+    "ELBAZ": {
+      "Description": "AZ(s) in which is the ELB is deployed",
+      "Type": "String",
+      "NoEcho": "True"
+    }
+  },
+  "Resources": {
+    "EucaSG": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Eucaconsole ELB"
+      }
+    },
+    "EucaPublicSGIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupName": {
+          "Ref": "EucaSG"
+        },
+        "IpProtocol": "tcp",
+        "ToPort": "8888",
+        "FromPort": "8888",
+        "CidrIp": "0.0.0.0/0"
+      }
+    },
+    "EucaPrivateSGIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupName": {
+          "Ref": "EucaSG"
+        },
+        "IpProtocol": "tcp",
+        "ToPort": "80",
+        "FromPort": "80",
+        "SourceSecurityGroupOwnerId" : {"Fn::GetAtt" : ["PublicELB", "SourceSecurityGroup.OwnerAlias"]},
+        "SourceSecurityGroupName" : {"Fn::GetAtt" : ["PublicELB", "SourceSecurityGroup.GroupName"]}
+      }
+    },
+    "EucaInstance1": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "CentosImageId"
+        },
+        "InstanceType": "m1.large",
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash \n",
+                "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/epel-release-6.noarch.rpm -y \n",
+                "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/elrepo-release-6.noarch.rpm -y \n",
+                "yum install nginx ansible git -y \n",
+                "echo INSTANCE1 > /usr/share/nginx/html/index.html \n",
+		"export INSTANCE_ID=`curl 169.254.169.254/latest/meta-data/instance-id` \n",
+		"echo $INSTANCE_ID >> /usr/share/nginx/html/index.html \n",
+		"service nginx start \n"
+              ]
+            ]
+          }
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "EucaSG"
+          }
+        ],
+        "KeyName": {
+          "Ref": "UserKeyPair"
+        }
+      }
+    },
+    "EucaInstance2": {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "ImageId": {
+          "Ref": "CentosImageId"
+        },
+        "InstanceType": "m1.large",
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash \n",
+                "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/epel-release-6.noarch.rpm -y \n",
+                "yum install http://downloads.eucalyptus.com/software/eucalyptus/4.0/centos/6/x86_64/elrepo-release-6.noarch.rpm -y \n",
+                "yum install nginx ansible git -y \n",
+                "export INSTANCE_ID=`curl 169.254.169.254/latest/meta-data/instance-id` \n",
+		"echo INSTANCE2 > /usr/share/nginx/html/index.html \n",
+		"echo $INSTANCE_ID >> /usr/share/nginx/html/index.html \n",
+                "service nginx start \n"
+              ]
+            ]
+          }
+        },
+        "SecurityGroups": [
+          {
+            "Ref": "EucaSG"
+          }
+        ],
+        "KeyName": {
+          "Ref": "UserKeyPair"
+        }
+      }
+    },
+    "PublicELB": {
+      "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+      "Properties": {
+        "Instances": [
+          {
+            "Ref": "EucaInstance2"
+          },
+          {
+            "Ref": "EucaInstance1"
+          }
+        ],
+        "AvailabilityZones": [
+          {
+            "Ref": "ELBAZ"
+          }
+        ],
+        "HealthCheck": {
+          "HealthyThreshold": "4",
+          "Interval": "5",
+          "Target": "HTTP:80/",
+          "Timeout": "2",
+          "UnhealthyThreshold": "2"
+        },
+        "Listeners": [
+          {
+            "InstancePort": "80",
+            "LoadBalancerPort": "80",
+            "Protocol": "HTTP",
+            "InstanceProtocol": "HTTP"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "ELBDemoURL": {
+      "Description": "Public DNS Name of the newly created ELB",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "http://",
+            {
+              "Fn::GetAtt": [
+                "PublicELB",
+                "DNSName"
+              ]
+            }
+          ]
+        ]
+      }
+    }
+  }
+}
