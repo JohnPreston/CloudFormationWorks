@@ -22,19 +22,7 @@
     "EucaSG": {
       "Type": "AWS::EC2::SecurityGroup",
       "Properties": {
-        "GroupDescription": "Eucaconsole ELB"
-      }
-    },
-    "EucaPublicSGIngress": {
-      "Type": "AWS::EC2::SecurityGroupIngress",
-      "Properties": {
-        "GroupName": {
-          "Ref": "EucaSG"
-        },
-        "IpProtocol": "tcp",
-        "ToPort": "8888",
-        "FromPort": "8888",
-        "CidrIp": "0.0.0.0/0"
+        "GroupDescription": "Instances Group"
       }
     },
     "EucaPrivateSGIngress": {
